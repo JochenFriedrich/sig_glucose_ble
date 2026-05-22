@@ -1,0 +1,21 @@
+{
+  "title": "SIG Glucose Meter (BLE)",
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "user": {
+        "title": "Set up Glucose Meter",
+        "description": "Found {count} SIG-compliant BLE glucose meter(s). Select one or enter a MAC address manually.",
+        "data": { "address": "Device MAC address" }
+      },
+      "bluetooth_confirm": {
+        "title": "Confirm Glucose Meter",
+        "description": "Do you want to set up **{name}** ({address})?"
+      }
+    },
+    "abort": {
+      "already_configured": "This device is already configured.",
+      "no_devices_found": "No SIG-compliant BLE glucose meters were found nearby."
+    }
+  }
+}
