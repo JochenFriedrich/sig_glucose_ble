@@ -124,15 +124,64 @@ pytest tests/ -v
 
 ---
 
-## Key Differences from Blood Pressure Integration
+## Using ESPHome Bluetooth Proxy
+When using an ESPHome Bluetooth Proxy, it might be neccessary to bond the device first.
+As bonding is not supported by bluetooth_proxy, we need a temporary ble_client setup:
 
-| | Blood Pressure (0x1810) | Glucose (0x1808) |
-|---|---|---|
-| Record retrieval | Automatic on connect | Must write RACP command |
-| Transfer end signal | Idle timeout / disconnect | RACP success indication |
-| Context data | None | Optional 0x2A34 linked by seq# |
-| Units | mmHg / kPa | mmol/L and mg/dL (both always exposed) |
-| History stored | Yes (auto-sent) | Yes (requested via RACP) |
+```yaml
+#bluetooth_proxy:
+#  active: true
+
+api:
+  actions:
+    - action: passkey_reply
+      variables:
+        passkey: int
+      then:
+        - logger.log: "Authenticating with passkey"
+        - ble_client.passkey_reply:
+            id: sbm70
+            passkey: !lambda return passkey;
+    - action: numeric_comparison_reply
+      variables:
+        accept: bool
+      then:
+        - logger.log: "Authenticating with numeric comparison"
+        - ble_client.numeric_comparison_reply:
+            id: sbm70
+            accept: !lambda return accept;
+
+esp32_ble:
+  io_capability: keyboard_display
+
+ble_client:
+  - mac_address: aa:bb:cc:dd:ee:ff
+    id: sbm70
+    on_passkey_request:
+      then:
+        - logger.log: "Enter the passkey displayed on your BLE device"
+        - logger.log: " Go to https://my.home-assistant.io/redirect/developer_services/ and select passkey_reply"
+    on_passkey_notification:
+      then:
+        - logger.log:
+            format: "Enter this passkey on your BLE device: %06d"
+            args: [ passkey ]
+    on_numeric_comparison_request:
+      then:
+        - logger.log:
+            format: "Compare this passkey with the one on your BLE device: %06d"
+            args: [ passkey ]
+        - logger.log: " Go to https://my.home-assistant.io/redirect/developer_services/ and select numeric_comparison_reply"
+    on_connect:
+      then:
+        - logger.log: "Connected"
+        - lambda: |-
+            ESP_LOGE("custom", "Connected to SBM70, trying to pair");
+            id(sbm70)->pair();
+```
+
+When bonding is completed, the ble_client can be deleted again and bluetooth_proxy enabled. It will now use the security
+information stored in the ESP flash.
 
 ---
 
